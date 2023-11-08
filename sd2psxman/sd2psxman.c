@@ -9,6 +9,7 @@
 IRX_ID(MODNAME, MAJOR, MINOR);
 
 #define SD2PSXMAN_ID 0x8B
+#define SD2PSXMAN_RESERVED 0xFF
 #define SD2PSXMAN_REPLY_CONST 0xAA
 
 #define SecrSetMcCommandHandler_Expnum 0x04
@@ -22,8 +23,9 @@ static SifRpcDataQueue_t sd2psxman_queue;
 static SifRpcServerData_t sd2psxman_server;
 
 //TODO: adjust rpc buffer size
-static u8 sd2psxman_rpc_buffer[0x64] __attribute__((__aligned__(4)));
+static u8 sd2psxman_rpc_buffer[268] __attribute__((__aligned__(4)));
 static int RPCThreadID;
+
 
 void HOOKED_SecrSetMcCommandHandler(McCommandHandler_t handler)
 {
@@ -91,11 +93,12 @@ static void sd2psxman_ping(void *data)
 {
     sd2psxman_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x2];
-    u8 rdbuf[0x6];
+    u8 wrbuf[0x3];
+    u8 rdbuf[0x7];
 
-    wrbuf[0x0] = SD2PSXMAN_ID;      //identifier
-    wrbuf[0x1] = SD2PSXMAN_PING;    //command
+    wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
+    wrbuf[0x1] = SD2PSXMAN_PING;        //command
+    wrbuf[0x2] = SD2PSXMAN_RESERVED;    //reserved byte
 
     sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
 
@@ -103,9 +106,9 @@ static void sd2psxman_ping(void *data)
     //bits 16-8: product id
     //bits 8-0: revision id
     if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
-        pkt->ret = rdbuf[0x2] << 16 | rdbuf[0x3] << 8 | rdbuf[0x4];
+        pkt->ret = rdbuf[0x3] << 16 | rdbuf[0x4] << 8 | rdbuf[0x5];
     } else {
-        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], 0xaa);
+        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
         pkt->ret = -2;
     }
 }
@@ -114,18 +117,19 @@ static void sd2psxman_get_status(void *data)
 {
     sd2psxman_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x2]; 
-    u8 rdbuf[0x5];
+    u8 wrbuf[0x3];
+    u8 rdbuf[0x6];
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
     wrbuf[0x1] = SD2PSXMAN_GET_STATUS;  //command
+    wrbuf[0x2] = SD2PSXMAN_RESERVED;    //reserved byte
 
     sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
 
     if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
-        pkt->ret = rdbuf[0x3];
+        pkt->ret = rdbuf[0x4];
     } else {
-        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], 0xaa);
+        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
         pkt->ret = -2;
     }
 }
@@ -134,18 +138,19 @@ static void sd2psxman_get_card(void *data)
 {
     sd2psxman_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x2];
-    u8 rdbuf[0x5];
+    u8 wrbuf[0x3];
+    u8 rdbuf[0x6];
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
     wrbuf[0x1] = SD2PSXMAN_GET_CARD;    //command
+    wrbuf[0x2] = SD2PSXMAN_RESERVED;    //reserved byte
     
     sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
 
     if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
-        pkt->ret = rdbuf[0x2] << 8 | rdbuf[0x3];
+        pkt->ret = rdbuf[0x3] << 8 | rdbuf[0x4];
     } else {
-        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], 0xaa);
+        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
         pkt->ret = -2;
     }
 }
@@ -154,21 +159,22 @@ static void sd2psxman_set_card(void *data)
 {
     sd2psxman_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x6];
+    u8 wrbuf[0x7];
     u8 rdbuf[0x2];
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
     wrbuf[0x1] = SD2PSXMAN_SET_CARD;    //command
-    wrbuf[0x2] = pkt->mode;             //set mode (num, next, prev)
-    wrbuf[0x3] = pkt->cnum >> 8;        //card number upper 8 bits           
-    wrbuf[0x4] = pkt->cnum & 0xFF;      //card number lower 8 bits
+    wrbuf[0x2] = SD2PSXMAN_RESERVED;    //reserved byte
+    wrbuf[0x3] = pkt->mode;             //set mode (num, next, prev)
+    wrbuf[0x4] = pkt->cnum >> 8;        //card number upper 8 bits
+    wrbuf[0x5] = pkt->cnum & 0xFF;      //card number lower 8 bits
 
     sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
 
     if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
         pkt->ret = 0;
     } else {
-        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], 0xaa);
+        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
         pkt->ret = -2;
     }
 }
@@ -177,18 +183,19 @@ static void sd2psxman_get_channel(void *data)
 {
     sd2psxman_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x2];
-    u8 rdbuf[0x5];
+    u8 wrbuf[0x3];
+    u8 rdbuf[0x6];
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
     wrbuf[0x1] = SD2PSXMAN_GET_CHANNEL; //command
+    wrbuf[0x2] = SD2PSXMAN_RESERVED;    //reserved byte
 
     sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
     
     if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
-        pkt->ret = rdbuf[0x2] << 8 | rdbuf[0x3];
+        pkt->ret = rdbuf[0x3] << 8 | rdbuf[0x4];
     } else {
-        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], 0xaa);
+        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
         pkt->ret = -2;
     }
 }
@@ -197,21 +204,22 @@ static void sd2psxman_set_channel(void *data)
 {
     sd2psxman_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x6];
+    u8 wrbuf[0x7];
     u8 rdbuf[0x2];
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
     wrbuf[0x1] = SD2PSXMAN_SET_CHANNEL; //command
-    wrbuf[0x2] = pkt->mode;             //set mode (num, next, prev)
-    wrbuf[0x3] = pkt->cnum >> 8;        //channel number upper 8 bits    
-    wrbuf[0x4] = pkt->cnum & 0xFF;      //channel number lower 8 bits
+    wrbuf[0x2] = SD2PSXMAN_RESERVED;    //reserved byte
+    wrbuf[0x3] = pkt->mode;             //set mode (num, next, prev)
+    wrbuf[0x4] = pkt->cnum >> 8;        //channel number upper 8 bits    
+    wrbuf[0x5] = pkt->cnum & 0xFF;      //channel number lower 8 bits
 
     sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
     
     if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
         pkt->ret = 0;
     } else {
-        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], 0xaa);
+        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
         pkt->ret = -2;
     }
 }
@@ -220,20 +228,22 @@ static void sd2psxman_get_gameid(void *data)
 {
     sd2psxman_gameid_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x2];
-    u8 rdbuf[0x13];
+    u8 wrbuf[0x3];
+    u8 rdbuf[0xFF]; //fixed packet size of 255 bytes
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
     wrbuf[0x1] = SD2PSXMAN_GET_GAMEID;  //command
+    wrbuf[0x2] = SD2PSXMAN_RESERVED;    //reserved byte
 
     sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
     
     if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
         pkt->ret = 0;
-        char* str = &rdbuf[0x2];
+        pkt->gameid_len = rdbuf[0x3];
+        char* str = &rdbuf[0x4];
         strcpy(pkt->gameid, str);
     } else {
-        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], 0xaa);
+        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
         pkt->ret = -2;
     }
 }
@@ -242,21 +252,23 @@ static void sd2psxman_set_gameid(void *data)
 {
     sd2psxman_gameid_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x13];
+    u8 wrbuf[0xFF];
     u8 rdbuf[0x2];
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
     wrbuf[0x1] = SD2PSXMAN_SET_GAMEID;  //command
+    wrbuf[0x2] = SD2PSXMAN_RESERVED;    //reserved byte
+    wrbuf[0x3] = pkt->gameid_len;       //gameid length
 
-    char* str = &wrbuf[0x2];
+    char* str = &wrbuf[0x4];
     strcpy(str, pkt->gameid);
 
-    sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
+    sd2psxman_sio2_send(pkt->port, pkt->slot, (pkt->gameid_len + 5), sizeof(rdbuf), wrbuf, rdbuf);
     
     if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
         pkt->ret = 0;
     } else {
-        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], 0xaa);
+        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
         pkt->ret = -2;
     }
 }
@@ -268,44 +280,35 @@ static void *sd2psxman_rpc_handler(unsigned int CMD, void *rpcBuffer, int size)
         DPRINTF("ERROR: CANNOT SEND COMMANDS IF 'McCommandHandler' HAS NOT BEEN INTERCEPTED, PLEASE LOAD MCMAN BEFORE USING SD2PSXMAN FEATURES\n");
         return rpcBuffer;
     }
-
-    /*
-    sd2psxman_rpc_pkt_t *pkt = rpcBuffer;
-    DPRINTF("sd2psxman_rpc_handler - cmd:  0x%x\n", CMD);
-    DPRINTF("sd2psxman_rpc_handler - port: 0x%x\n", pkt->port);
-    DPRINTF("sd2psxman_rpc_handler - slot: 0x%x\n", pkt->slot);
-    DPRINTF("sd2psxman_rpc_handler - mode: 0x%x\n", pkt->mode);
-    DPRINTF("sd2psxman_rpc_handler - num:  0x%x\n\n", pkt->cnum);
-    */
    
     switch(CMD)
 	{
-    case SD2PSXMAN_PING:
-        sd2psxman_ping(rpcBuffer);
-        break;
-    case SD2PSXMAN_GET_STATUS:
-        sd2psxman_get_status(rpcBuffer);
-        break;
-    case SD2PSXMAN_GET_CARD:
-        sd2psxman_get_card(rpcBuffer);
-        break;
-    case SD2PSXMAN_SET_CARD:
-        sd2psxman_set_card(rpcBuffer);
-        break;
-    case SD2PSXMAN_GET_CHANNEL:
-        sd2psxman_get_channel(rpcBuffer);
-        break;
-    case SD2PSXMAN_SET_CHANNEL:
-        sd2psxman_set_channel(rpcBuffer);
-        break;
-    case SD2PSXMAN_GET_GAMEID:
-        sd2psxman_get_gameid(rpcBuffer);
-        break;
-    case SD2PSXMAN_SET_GAMEID:
-        sd2psxman_set_gameid(rpcBuffer);
-        break;
-    default:
-		printf(MODNAME": Unknown CMD (%d) called!\n", CMD);
+        case SD2PSXMAN_PING:
+            sd2psxman_ping(rpcBuffer);
+            break;
+        case SD2PSXMAN_GET_STATUS:
+            sd2psxman_get_status(rpcBuffer);
+            break;
+        case SD2PSXMAN_GET_CARD:
+            sd2psxman_get_card(rpcBuffer);
+            break;
+        case SD2PSXMAN_SET_CARD:
+            sd2psxman_set_card(rpcBuffer);
+            break;
+        case SD2PSXMAN_GET_CHANNEL:
+            sd2psxman_get_channel(rpcBuffer);
+            break;
+        case SD2PSXMAN_SET_CHANNEL:
+            sd2psxman_set_channel(rpcBuffer);
+            break;
+        case SD2PSXMAN_GET_GAMEID:
+            sd2psxman_get_gameid(rpcBuffer);
+            break;
+        case SD2PSXMAN_SET_GAMEID:
+            sd2psxman_set_gameid(rpcBuffer);
+            break;
+        default:
+            printf(MODNAME": Unknown CMD (%d) called!\n", CMD);
     }
 
     return rpcBuffer;

@@ -10,6 +10,7 @@
 #include "../sd2psxman_common.h"
 
 #define PORT PORT_MEMCARD2
+#define MAX_GAMEID_LEN 251
 
 #define IRX_DEFINE(mod)                     \
     extern unsigned char mod##_irx[];       \
@@ -221,7 +222,7 @@ void test_set_channel_num(int num)
 void test_get_gameid(void)
 {
     int rv;
-    char gameid[0x10];
+    char gameid[MAX_GAMEID_LEN];
 
     printf("Testing: 0x7 - Get GameID\n");
     rv = sd2psxman_get_gameid(PORT, 0, gameid);
@@ -237,8 +238,8 @@ void test_get_gameid(void)
 void test_set_gameid(char *gameid)
 {
     int rv;
-    char old_gameid[0x10];
-    char new_gameid[0x10];
+    char old_gameid[MAX_GAMEID_LEN];
+    char new_gameid[MAX_GAMEID_LEN];
 
     printf("Testing: 0x8 - Set GameID (%s)\n", gameid);
     rv = sd2psxman_get_gameid(PORT, 0, old_gameid);
@@ -274,8 +275,11 @@ int main()
 
     sd2psxman_init();
 
-    char gameid[0x10] = {'S', 'L', 'U', 'S', '-', '2', '0', '9', '1', '5', '\0'};
-
+    time_t t;
+    srand((unsigned) time(&t));
+    
+    char gameid[0x250] = {'S', 'L', 'U', 'S', '-', '2', '0', '9', '1', '5', '\0'};
+    
     delay(2);
     test_ping();
     delay(2);
@@ -293,7 +297,7 @@ int main()
     delay(2);
     test_set_channel_prev();
     delay(2);
-    test_set_channel_num(rand() % 8);
+    test_set_channel_num((rand() % 7) + 1);
     delay(2);
     test_get_gameid();
     delay(2);

@@ -42,7 +42,8 @@ typedef struct sd2psxman_gameid_rpc_pkt_t
 {
     u8 slot;    //used for multitap
     u8 port;    //0 = ctrl1, 1 = ctrl2, 2 = memcard1, 3 = memcard2
-    char gameid[0x10];
+    u8 gameid_len;
+    char gameid[251];
     int ret;
 }sd2psxman_gameid_rpc_pkt_t;
 

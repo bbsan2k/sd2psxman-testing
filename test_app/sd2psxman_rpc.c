@@ -195,7 +195,7 @@ int sd2psxman_set_gameid(int port, int slot, const char *gameid)
     if (gameid == NULL)
         return -1;
 
-    if (strlen(gameid) > 0x10)
+    if (strlen(gameid) > 250)
         return -1; 
 
     CHECK_RPC_INIT();
@@ -205,6 +205,7 @@ int sd2psxman_set_gameid(int port, int slot, const char *gameid)
 
     pkt.port = port;
     pkt.slot = slot;
+    pkt.gameid_len = strlen(gameid) + 1; //+1 null terminator
     strcpy(pkt.gameid, gameid);
 
     if (SifCallRpc(&sd2psxman_RPC, SD2PSXMAN_SET_GAMEID, 0, &pkt, SD2PSXMAN_GAMEID_RPC_PKT_SIZE, &pkt, SD2PSXMAN_GAMEID_RPC_PKT_SIZE, NULL, NULL) < 0)
