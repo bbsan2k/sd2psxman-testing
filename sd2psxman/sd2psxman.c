@@ -154,7 +154,7 @@ static void sd2psxman_set_card(void *data)
 {
     sd2psxman_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x5];
+    u8 wrbuf[0x6];
     u8 rdbuf[0x2];
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
@@ -197,7 +197,7 @@ static void sd2psxman_set_channel(void *data)
 {
     sd2psxman_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x5];
+    u8 wrbuf[0x6];
     u8 rdbuf[0x2];
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
