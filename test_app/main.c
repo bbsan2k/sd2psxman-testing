@@ -260,6 +260,31 @@ void test_set_gameid(char *gameid)
     printf("\n");
 }
 
+void test_unmount_bootcard(void)
+{
+    int rv;
+    int temp;
+
+    printf("Testing: 0x30 - Unmount Bootcard\n");
+    rv = sd2psxman_get_card(PORT, 0);
+    if (rv == 0) {
+        sd2psxman_unmount_bootcard(PORT, 0);
+        delay(7); //give card time to switch
+        temp = sd2psxman_get_card(PORT, 0);
+
+        if (temp > -1 && temp != rv) {
+            printf("[PASS] bootcard unmounted: %i -> %i\n", rv, temp);
+            printf("\n");
+        } else {
+            printf("[FAIL] %i %i\n", rv, temp);
+            printf("\n");
+        }
+        return;
+    }
+    printf("[FAIL] bootcard not mounted\n");
+    printf("\n");
+}
+
 int main()
 {
     printf("Loading sio2man\n");
@@ -279,7 +304,7 @@ int main()
     srand((unsigned) time(&t));
     
     char gameid[0x250] = {'S', 'L', 'U', 'S', '-', '2', '0', '9', '1', '5', '\0'};
-    
+
     delay(2);
     test_ping();
     delay(2);

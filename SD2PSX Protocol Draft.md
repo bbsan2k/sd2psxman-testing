@@ -101,3 +101,8 @@ If gameid is shorter than this, padding bytes must be sent.
 | 0x03     | var  | 0x00 | gameid len             |
 | 0x04-var | var  | 0x00 | gameid (max 250 bytes) |
 | var + 1  | 0xff | 0xff | termination byte       |
+
+### 0x30 [Temporary Assignment] - Unmount Bootcard [Implemented]
+| offset | out  |  in  |   description    |
+|--------|------|------|------------------|
+| 0x03   | 0xff | 0xff | termination byte |

@@ -273,6 +273,27 @@ static void sd2psxman_set_gameid(void *data)
     }
 }
 
+static void sd2psxman_unmount_bootcard(void *data)
+{
+    sd2psxman_rpc_pkt_t *pkt = data;
+
+    u8 wrbuf[0x3];
+    u8 rdbuf[0x4];
+
+    wrbuf[0x0] = SD2PSXMAN_ID;               //identifier
+    wrbuf[0x1] = SD2PSXMAN_UNMOUNT_BOOTCARD; //command
+    wrbuf[0x2] = SD2PSXMAN_RESERVED;         //reserved byte
+
+    sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
+
+    if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
+        pkt->ret = 0;
+    } else {
+        DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
+        pkt->ret = -2;
+    }
+}
+
 static void *sd2psxman_rpc_handler(unsigned int CMD, void *rpcBuffer, int size)
 {
     if (McCommandHandler == NULL)
@@ -306,6 +327,9 @@ static void *sd2psxman_rpc_handler(unsigned int CMD, void *rpcBuffer, int size)
             break;
         case SD2PSXMAN_SET_GAMEID:
             sd2psxman_set_gameid(rpcBuffer);
+            break;
+        case SD2PSXMAN_UNMOUNT_BOOTCARD:
+            sd2psxman_unmount_bootcard(rpcBuffer);
             break;
         default:
             printf(MODNAME": Unknown CMD (%d) called!\n", CMD);

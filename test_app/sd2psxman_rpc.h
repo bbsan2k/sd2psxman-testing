@@ -15,4 +15,6 @@ int sd2psxman_set_channel(int port, int slot, int mode, int num);
 int sd2psxman_get_gameid(int port, int slot, char *gameid);
 int sd2psxman_set_gameid(int port, int slot, const char *gameid);
 
+int sd2psxman_unmount_bootcard(int port, int slot);
+
 #endif

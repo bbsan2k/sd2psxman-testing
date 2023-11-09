@@ -216,3 +216,22 @@ int sd2psxman_set_gameid(int port, int slot, const char *gameid)
 
     return pkt.ret;
 }
+
+int sd2psxman_unmount_bootcard(int port, int slot)
+{
+    CHECK_RPC_INIT();
+
+    sd2psxman_gameid_rpc_pkt_t pkt;
+    memset(&pkt, 0, SD2PSXMAN_GAMEID_RPC_PKT_SIZE);
+
+    pkt.port = port;
+    pkt.slot = slot;
+
+    if (SifCallRpc(&sd2psxman_RPC, SD2PSXMAN_UNMOUNT_BOOTCARD, 0, &pkt, SD2PSXMAN_RPC_PKT_SIZE, &pkt, SD2PSXMAN_RPC_PKT_SIZE, NULL, NULL) < 0)
+    {
+        DPRINTF("%s: RPC ERROR\n", __FUNCTION__);
+        return -1;
+    }
+
+    return pkt.ret;
+}
