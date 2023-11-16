@@ -5,7 +5,7 @@ EE_OBJS_DIR = obj/
 EE_SRC_DIR = src/
 EE_ASM_DIR = asm/
 
-EE_LIBS = -ldebug -lpatches
+EE_LIBS = -ldebug -lpatches -lpad
 
 EE_OBJS = main.o sd2psxman_rpc.o
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -14,7 +14,8 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 EE_IRX_FILES =\
 	mcman.irx \
 	sio2man.irx\
-	sd2psxman.irx
+	sd2psxman.irx\
+	padman.irx
 
 EE_IRX_OBJS = $(addsuffix _irx.o, $(basename $(EE_IRX_FILES)))
 EE_OBJS += $(EE_IRX_OBJS)

@@ -1,15 +1,18 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
 #include <loadfile.h>
+#include <libpad.h>
+
 
 #include "sd2psxman_rpc.h"
 #include "../sd2psxman_common.h"
 
-#define PORT PORT_MEMCARD2
+#define PORT PORT_MEMCARD1
 #define MAX_GAMEID_LEN 251
 
 #define IRX_DEFINE(mod)                     \
@@ -23,12 +26,31 @@
 IRX_DEFINE(mcman);
 IRX_DEFINE(sd2psxman);
 IRX_DEFINE(sio2man);
+IRX_DEFINE(padman);
+
+static struct padButtonStatus padStat;
+static char padBuf[256] __attribute__((aligned(64)));
+
+// pad values from this poll
+// and from the previous 'frame'
+static uint32_t rawPadMask = 0x0000;
+static uint32_t lastPadMask = 0x0000;
 
 inline void delay(int seconds)
 {
     struct timespec tv;
     tv.tv_sec = seconds;
     tv.tv_nsec = 0;
+    nanosleep(&tv, NULL);
+}
+
+// not vsynced, but somewhere in the ballpack
+// of 60fps so we don't overwhelm the pad
+inline void delayframe()
+{
+    struct timespec tv;
+    tv.tv_sec = 0;
+    tv.tv_nsec = 16000000;
     nanosleep(&tv, NULL);
 }
 
@@ -48,7 +70,9 @@ void test_ping(void)
 }
 
 void test_get_status(void)
-{}
+{
+    printf("Not implemented\n");
+}
 
 void test_get_card(void)
 {
@@ -285,20 +309,199 @@ void test_unmount_bootcard(void)
     printf("\n");
 }
 
-int main()
+/// @brief Read pad vals and update prev to determine new button presses/releases
+/// @returns successful read
+bool update_pad()
 {
-    printf("Loading sio2man\n");
-    IRX_LOAD(sio2man);
-    delay(1);
 
-    printf("Loading sd2psxman\n");
-    IRX_LOAD(sd2psxman);
-    delay(1);
+    int port = 0;
+    int slot = 0;
+
+    lastPadMask = rawPadMask;
+
+    int rv = padRead(port, slot, &padStat);
+
+    if (rv == 0)
+    {
+        printf("padRead failed: %d\n", rv);
+        rawPadMask = 0x0000;
+        lastPadMask = 0x0000;
+        return false;
+    }
+
+    rawPadMask = 0xFFFF ^ padStat.btns;
     
-    printf("Loading mcman\n");
-    IRX_LOAD(mcman);
+    return true;
+}
 
-    sd2psxman_init();
+bool released(int button)
+{
+    return ((lastPadMask & button) == button) && ((rawPadMask & button) != button);
+}
+
+bool all_released()
+{
+    return rawPadMask == 0x0000 && lastPadMask != 0x0000;
+}
+
+bool init_pad()
+{
+    // First pad only
+    int port = 0;
+    int slot = 0;
+
+    int rv = 0;
+
+    rv = padInit(port);
+    if (rv != 1)
+    {
+        printf("padInit failed: %d\n", rv);
+        return false;
+    }
+
+    rv = padPortOpen(port, slot, &padBuf);
+    if (rv == 0)
+    {
+        printf("padPortOpen failed: %d\n", rv);
+        return false;
+    }
+
+    // Wait for the pad to become ready
+    rv = padGetState(port, slot);
+    while ((rv != PAD_STATE_STABLE) && (rv != PAD_STATE_FINDCTP1))
+    {
+        if (rv == PAD_STATE_DISCONN)
+        {
+            printf("Pad port%d/slot%d) is disconnected\n", port, slot);
+            return false;
+        }
+        rv = padGetState(port, slot);
+    }
+
+    // not necessary, but the LED is a useful indicator
+    padSetMainMode(port, slot, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK);
+
+    // It doesn't like being rushed.
+    for (int i = 0; i < 30; i++)
+    {
+        delayframe();
+    }
+
+    // Pre-read pad vals
+    update_pad();
+
+    printf("Pad %d ready in slot %d\n", port, slot);
+
+    return true;
+}
+
+void print_menu_header()
+{
+    printf("\n");
+    printf("--------------------\n");
+    printf("><  = Ping\n");
+    printf("/\\  = Get GameID\n");
+    printf("[]  = Set Game = Katamari (SLUS-21230) \n");
+    printf("()  = Set Game = GT3 (PBPX-95503)\n");
+    printf("\n");
+    printf("->  = Get Card\n");
+    printf("--  = Get Status\n");
+    printf("\n");
+    printf("R1 = Next Chan\n");
+    printf("L1 = Prev Chan\n");
+    printf("R2 = Next Card\n");
+    printf("L2 = Prev Card\n");
+    printf("R3 = Exit\n");
+    printf("--------------------\n");
+}
+
+void menu_loop()
+{
+
+    while (true)
+    {
+
+        print_menu_header();
+
+        update_pad();
+
+        // Prevent spamming the sio every frame 
+        // as if we were printing to the screen.
+        while (!all_released())
+        {
+            delayframe();
+            update_pad();
+        }
+
+        printf("Processing...\n");
+
+        // Ping & GameID
+
+        if (released(PAD_CROSS))
+        {
+            delay(1);
+            test_ping();
+        }
+        else if (released(PAD_CIRCLE))
+        {
+            // Gran Turismo 3 - A-Spec
+            char gameid[0x250] = {'S', 'L', 'U', 'S', '-', '2', '1', '2', '3', '0', '\0'};
+            test_set_gameid(gameid);
+        }
+        else if (released(PAD_SQUARE))
+        {
+            // Gran Turismo 3 - A-Spec
+            char gameid[0x250] = {'P', 'B', 'P', 'X', '-', '9', '5', '5', '0', '3', '\0'};
+            test_set_gameid(gameid);
+        }
+        else if (released(PAD_TRIANGLE))
+        {
+            printf("Triangle pressed\n");
+        }
+
+        // Chan and Card Switch:
+
+        if (released(PAD_L1))
+        {
+            test_set_channel_prev();
+        }
+        else if (released(PAD_L2))
+        {
+            test_set_card_prev();
+        }
+        else if (released(PAD_R1))
+        {
+            test_set_channel_next();
+        }
+        else if (released(PAD_R2))
+        {
+            test_set_card_next();
+        }
+
+        // Read info:
+
+        if (released(PAD_START))
+        {
+            test_get_card();
+        }
+        else if (released(PAD_SELECT))
+        {
+            test_get_status();
+        }
+        else if (released(PAD_R3))
+        {
+            break;
+        }
+
+        printf("Done...\n");
+        
+    } // while (true);
+}
+
+void auto_test()
+{
+
+    printf( "Performing auto test sequence...\n" );
 
     time_t t;
     srand((unsigned) time(&t));
@@ -327,6 +530,39 @@ int main()
     test_get_gameid();
     delay(2);
     test_set_gameid(gameid);
+
+}
+
+int main()
+{
+
+    printf("Loading sio2man\n");
+    IRX_LOAD(sio2man);
+    delay(1);
+
+    printf("Loading sd2psxman\n");
+    IRX_LOAD(sd2psxman);
+    delay(1);
+    
+    printf("Loading mcman\n");
+    IRX_LOAD(mcman);
+
+    printf("Loading padman\n");
+    IRX_LOAD(padman);
+
+    sd2psxman_init();
+
+    bool padInited = init_pad();
+
+    // Perform a short automatic sequence
+    // if we fail to init the pads.
+    if (!padInited)
+    {
+        printf("Pad init failed...\n");
+        auto_test();
+    } else {
+        menu_loop();
+    }
 
     printf("Testing Complete\n");
 
