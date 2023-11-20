@@ -515,7 +515,16 @@ void menu_loop()
             break;
         }
 
-        printf("Done...\n");
+
+        xprintf("Push to continue... \n" );
+        update_pad();
+        while (!all_released())
+        {
+            delayframe();
+            update_pad();
+        }
+
+        xprintf("Done...\n");
         
     } // while (true);
 }
