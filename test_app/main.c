@@ -501,11 +501,11 @@ void menu_loop()
 void auto_test()
 {
 
-    printf( "Performing auto test sequence...\n" );
+    printf("Performing auto test sequence...\n");
 
     time_t t;
-    srand((unsigned) time(&t));
-    
+    srand((unsigned)time(&t));
+
     char gameid[0x250] = {'S', 'L', 'U', 'S', '-', '2', '0', '9', '1', '5', '\0'};
 
     delay(2);
@@ -531,6 +531,29 @@ void auto_test()
     delay(2);
     test_set_gameid(gameid);
 
+    printf("Auto test complete\n");
+}
+
+/// @return a button was pressed on the pad, interrupting the countdown.
+bool countdown()
+{
+
+    printf("Auto test will run in 3 seconds, press the Any key for manual operation\n");
+
+    for (int i = 4; i > 0; i--)
+    {
+        printf("%d... %ld\n", i, rawPadMask);
+        for (int j = 0; j < 60; j++)
+        {
+            delayframe();
+            update_pad();
+            if (all_released())
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 int main()
@@ -552,19 +575,29 @@ int main()
 
     sd2psxman_init();
 
+    // Perform a short automatic sequence
+    // if we fail to init the pads or
+    // interrupt the countdown timer
+
     bool padInited = init_pad();
 
-    // Perform a short automatic sequence
-    // if we fail to init the pads.
     if (!padInited)
     {
         printf("Pad init failed...\n");
         auto_test();
-    } else {
-        menu_loop();
+        return 0;
     }
 
-    printf("Testing Complete\n");
+    bool interrupted = countdown();
+
+    if (!interrupted)
+    {
+        printf("No button press, running auto test...\n");
+        auto_test();
+        return 0;
+    }
+
+    menu_loop();
 
     return 0;
 }
