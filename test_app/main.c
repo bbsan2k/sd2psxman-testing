@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <loadfile.h>
 #include <libpad.h>
-
+#include <debug.h>
 
 #include "sd2psxman_rpc.h"
 #include "../sd2psxman_common.h"
@@ -22,6 +22,11 @@
 #define IRX_LOAD(mod)                                                           \
     if (SifExecModuleBuffer(mod##_irx, size_##mod##_irx, 0, NULL, NULL) < 0)    \
     printf("Could not load ##mod##\n")
+
+#define xprintf(f_, ...)         \
+    printf((f_), ##__VA_ARGS__); \
+    scr_printf("    ");          \
+    scr_printf((f_), ##__VA_ARGS__);
 
 IRX_DEFINE(mcman);
 IRX_DEFINE(sd2psxman);
@@ -58,35 +63,43 @@ void test_ping(void)
 {
     int rv;
 
-    printf("Testing: 0x01 - Ping\n");
+    xprintf("Testing: 0x01 - Ping\n");
     rv = sd2psxman_ping(PORT, 0);
-    
-    if (rv > -1)
-        printf("[PASS] proto ver: 0x%x, prod id: 0x%x, rev id: 0x%x\n", rv >> 16, (rv >> 8) & 0xff, rv & 0xff);
-    else
-        printf("[Fail] error: %i\n", rv);
 
-    printf("\n");
+    if (rv > -1)
+    {
+        xprintf("[PASS] proto ver: 0x%x, prod id: 0x%x, rev id: 0x%x\n", rv >> 16, (rv >> 8) & 0xff, rv & 0xff);
+    }
+    else
+    {
+        xprintf("[Fail] error: %i\n", rv);
+    }
+
+    xprintf("\n");
 }
 
 void test_get_status(void)
 {
-    printf("Not implemented\n");
+    xprintf("Not implemented\n");
 }
 
 void test_get_card(void)
 {
     int rv;
 
-    printf("Testing: 0x3 - Get Card\n");
+    xprintf("Testing: 0x3 - Get Card\n");
     rv = sd2psxman_get_card(PORT, 0);
 
     if (rv > -1)
-        printf("[PASS] current card: %i\n", rv);
+    {
+        xprintf("[PASS] current card: %i\n", rv);
+    }
     else
-        printf("[FAIL] error: %i\n", rv);
+    {
+        xprintf("[FAIL] error: %i\n", rv);
+    }
 
-    printf("\n");
+    xprintf("\n");
 }
 
 void test_set_card_next(void)
@@ -94,7 +107,7 @@ void test_set_card_next(void)
     int rv;
     int temp = -1;
 
-    printf("Testing: 0x4 - Set Card [NEXT]\n");
+    xprintf("Testing: 0x4 - Set Card [NEXT]\n");
     rv = sd2psxman_get_card(PORT, 0);
 
     if (rv > -1) {
@@ -104,13 +117,13 @@ void test_set_card_next(void)
         temp = sd2psxman_get_card(PORT, 0);
 
         if (temp > -1 && temp != rv) {
-            printf("[PASS] card: %i -> %i\n", rv, temp);
-            printf("\n");
+            xprintf("[PASS] card: %i -> %i\n", rv, temp);
+            xprintf("\n");
             return;
         }
     }
-    printf("[FAIL] %i %i\n", rv, temp);
-    printf("\n");
+    xprintf("[FAIL] %i %i\n", rv, temp);
+    xprintf("\n");
 }
 
 void test_set_card_prev(void)
@@ -118,7 +131,7 @@ void test_set_card_prev(void)
     int rv;
     int temp = -1;
 
-    printf("Testing: 0x4 - Set Card [PREV]\n");
+    xprintf("Testing: 0x4 - Set Card [PREV]\n");
     rv = sd2psxman_get_card(PORT, 0);
 
     if (rv > -1) {
@@ -127,13 +140,13 @@ void test_set_card_prev(void)
         temp = sd2psxman_get_card(PORT, 0);
 
         if (temp > -1 && temp != rv) {
-            printf("[PASS] card: %i -> %i\n", rv, temp);
-            printf("\n");
+            xprintf("[PASS] card: %i -> %i\n", rv, temp);
+            xprintf("\n");
             return;
         }
     }
-    printf("[FAIL] %i %i\n", rv, temp);
-    printf("\n");
+    xprintf("[FAIL] %i %i\n", rv, temp);
+    xprintf("\n");
 }
 
 void test_set_card_num(int num)
@@ -141,7 +154,7 @@ void test_set_card_num(int num)
     int rv;
     int temp = -1;
 
-    printf("Testing: 0x4 - Set Card [NUM] (%i)\n", num);
+    xprintf("Testing: 0x4 - Set Card [NUM] (%i)\n", num);
     rv = sd2psxman_get_card(PORT, 0);
 
     if (rv > -1) {
@@ -150,28 +163,32 @@ void test_set_card_num(int num)
         temp = sd2psxman_get_card(PORT, 0);
 
         if (temp > -1 && temp != rv) {
-            printf("[PASS] card: %i -> %i\n", rv, temp);
-            printf("\n");
+            xprintf("[PASS] card: %i -> %i\n", rv, temp);
+            xprintf("\n");
             return;
         }
     }
-    printf("[FAIL] %i %i\n", rv, temp);
-    printf("\n");
+    xprintf("[FAIL] %i %i\n", rv, temp);
+    xprintf("\n");
 }
 
 void test_get_channel(void)
 {
     int rv;
 
-    printf("Testing: 0x5 - Get Channel\n");
+    xprintf("Testing: 0x5 - Get Channel\n");
     rv = sd2psxman_get_channel(PORT, 0);
 
     if (rv > -1)
-        printf("[PASS] current channel: %i\n", rv);
+    {
+        xprintf("[PASS] current channel: %i\n", rv);
+    }
     else
-        printf("[FAIL] error: %i\n", rv);
+    {
+        xprintf("[FAIL] error: %i\n", rv);
+    }
 
-    printf("\n");
+    xprintf("\n");
 }
 
 void test_set_channel_next(void)
@@ -179,7 +196,7 @@ void test_set_channel_next(void)
     int rv;
     int temp = -1;
 
-    printf("Testing: 0x6 - Set Channel [NEXT]\n");
+    xprintf("Testing: 0x6 - Set Channel [NEXT]\n");
     rv = sd2psxman_get_channel(PORT, 0);
 
     if (rv > -1) {
@@ -188,13 +205,13 @@ void test_set_channel_next(void)
         temp = sd2psxman_get_channel(PORT, 0);
 
         if (temp > -1 && temp != rv) {
-            printf("[PASS] card: %i -> %i\n", rv, temp);
-            printf("\n");
+            xprintf("[PASS] card: %i -> %i\n", rv, temp);
+            xprintf("\n");
             return;
         }
     }
-    printf("[FAIL] %i %i\n", rv, temp);
-    printf("\n");
+    xprintf("[FAIL] %i %i\n", rv, temp);
+    xprintf("\n");
 }
 
 void test_set_channel_prev(void)
@@ -202,7 +219,7 @@ void test_set_channel_prev(void)
     int rv;
     int temp = -1;
 
-    printf("Testing: 0x6 - Set Channel [PREV]\n");
+    xprintf("Testing: 0x6 - Set Channel [PREV]\n");
     rv = sd2psxman_get_channel(PORT, 0);
     
     if (rv > -1) {
@@ -211,13 +228,13 @@ void test_set_channel_prev(void)
         temp = sd2psxman_get_channel(PORT, 0);
 
         if (temp > -1 && temp != rv) {
-            printf("[PASS] card: %i -> %i\n", rv, temp);
-            printf("\n");
+            xprintf("[PASS] card: %i -> %i\n", rv, temp);
+            xprintf("\n");
             return;
         }
     }
-    printf("[FAIL] %i %i\n", rv, temp);
-    printf("\n");
+    xprintf("[FAIL] %i %i\n", rv, temp);
+    xprintf("\n");
 }
 
 void test_set_channel_num(int num)
@@ -225,7 +242,7 @@ void test_set_channel_num(int num)
     int rv;
     int temp = -1;
 
-    printf("Testing: 0x6 - Set Channel [NUM] (%i)\n", num);
+    xprintf("Testing: 0x6 - Set Channel [NUM] (%i)\n", num);
     rv = sd2psxman_get_channel(PORT, 0);
 
     if (rv > -1) {
@@ -234,13 +251,13 @@ void test_set_channel_num(int num)
         temp = sd2psxman_get_channel(PORT, 0);
 
         if (temp > -1 && temp != rv) {
-            printf("[PASS] card: %i -> %i\n", rv, temp);
-            printf("\n");
+            xprintf("[PASS] card: %i -> %i\n", rv, temp);
+            xprintf("\n");
             return;
         }
     }
-    printf("[FAIL] %i %i\n", rv, temp);
-    printf("\n");
+    xprintf("[FAIL] %i %i\n", rv, temp);
+    xprintf("\n");
 }
 
 void test_get_gameid(void)
@@ -248,15 +265,19 @@ void test_get_gameid(void)
     int rv;
     char gameid[MAX_GAMEID_LEN];
 
-    printf("Testing: 0x7 - Get GameID\n");
+    xprintf("Testing: 0x7 - Get GameID\n");
     rv = sd2psxman_get_gameid(PORT, 0, gameid);
-    
-    if (rv > -1)
-        printf("[PASS] gameid: %s\n", gameid);
-    else
-        printf("[FAIL] error: %i\n", rv);
 
-    printf("\n");
+    if (rv > -1)
+    {
+        xprintf("[PASS] gameid: %s\n", gameid);
+    }
+    else
+    {
+        xprintf("[FAIL] error: %i\n", rv);
+    }
+
+    xprintf("\n");
 }
 
 void test_set_gameid(char *gameid)
@@ -265,7 +286,7 @@ void test_set_gameid(char *gameid)
     char old_gameid[MAX_GAMEID_LEN];
     char new_gameid[MAX_GAMEID_LEN];
 
-    printf("Testing: 0x8 - Set GameID (%s)\n", gameid);
+    xprintf("Testing: 0x8 - Set GameID (%s)\n", gameid);
     rv = sd2psxman_get_gameid(PORT, 0, old_gameid);
     
     if (rv > -1) {
@@ -275,13 +296,13 @@ void test_set_gameid(char *gameid)
 
         if (rv > -1) {
             if (strcmp(old_gameid, new_gameid) != 0){
-                printf("[PASS] gameid: %s -> %s\n", old_gameid, new_gameid);
+                xprintf("[PASS] gameid: %s -> %s\n", old_gameid, new_gameid);
                 return;
             }
         }
     }
-    printf("[FAIL] %i\n", rv);
-    printf("\n");
+    xprintf("[FAIL] %i\n", rv);
+    xprintf("\n");
 }
 
 void test_unmount_bootcard(void)
@@ -289,7 +310,7 @@ void test_unmount_bootcard(void)
     int rv;
     int temp;
 
-    printf("Testing: 0x30 - Unmount Bootcard\n");
+    xprintf("Testing: 0x30 - Unmount Bootcard\n");
     rv = sd2psxman_get_card(PORT, 0);
     if (rv == 0) {
         sd2psxman_unmount_bootcard(PORT, 0);
@@ -297,16 +318,16 @@ void test_unmount_bootcard(void)
         temp = sd2psxman_get_card(PORT, 0);
 
         if (temp > -1 && temp != rv) {
-            printf("[PASS] bootcard unmounted: %i -> %i\n", rv, temp);
-            printf("\n");
+            xprintf("[PASS] bootcard unmounted: %i -> %i\n", rv, temp);
+            xprintf("\n");
         } else {
-            printf("[FAIL] %i %i\n", rv, temp);
-            printf("\n");
+            xprintf("[FAIL] %i %i\n", rv, temp);
+            xprintf("\n");
         }
         return;
     }
-    printf("[FAIL] bootcard not mounted\n");
-    printf("\n");
+    xprintf("[FAIL] bootcard not mounted\n");
+    xprintf("\n");
 }
 
 /// @brief Read pad vals and update prev to determine new button presses/releases
@@ -323,7 +344,7 @@ bool update_pad()
 
     if (rv == 0)
     {
-        printf("padRead failed: %d\n", rv);
+        xprintf("padRead failed: %d\n", rv);
         rawPadMask = 0x0000;
         lastPadMask = 0x0000;
         return false;
@@ -355,14 +376,14 @@ bool init_pad()
     rv = padInit(port);
     if (rv != 1)
     {
-        printf("padInit failed: %d\n", rv);
+        xprintf("padInit failed: %d\n", rv);
         return false;
     }
 
     rv = padPortOpen(port, slot, &padBuf);
     if (rv == 0)
     {
-        printf("padPortOpen failed: %d\n", rv);
+        xprintf("padPortOpen failed: %d\n", rv);
         return false;
     }
 
@@ -372,7 +393,7 @@ bool init_pad()
     {
         if (rv == PAD_STATE_DISCONN)
         {
-            printf("Pad port%d/slot%d) is disconnected\n", port, slot);
+            xprintf("Pad port%d/slot%d) is disconnected\n", port, slot);
             return false;
         }
         rv = padGetState(port, slot);
@@ -390,29 +411,29 @@ bool init_pad()
     // Pre-read pad vals
     update_pad();
 
-    printf("Pad %d ready in slot %d\n", port, slot);
+    xprintf("Pad %d ready in slot %d\n", port, slot);
 
     return true;
 }
 
 void print_menu_header()
 {
-    printf("\n");
-    printf("--------------------\n");
-    printf("><  = Ping\n");
-    printf("/\\  = Get GameID\n");
-    printf("[]  = Set Game = Katamari (SLUS-21230) \n");
-    printf("()  = Set Game = GT3 (PBPX-95503)\n");
-    printf("\n");
-    printf("->  = Get Card\n");
-    printf("--  = Get Status\n");
-    printf("\n");
-    printf("R1 = Next Chan\n");
-    printf("L1 = Prev Chan\n");
-    printf("R2 = Next Card\n");
-    printf("L2 = Prev Card\n");
-    printf("R3 = Exit\n");
-    printf("--------------------\n");
+    xprintf(" \n");
+    xprintf("--------------------\n");
+    xprintf("><  = Ping\n");
+    xprintf("/\\  = Get GameID\n");
+    xprintf("[]  = Set Game = Katamari (SLUS-21230) \n");
+    xprintf("()  = Set Game = GT3 (PBPX-95503)\n");
+    xprintf(" \n");
+    xprintf("->  = Get Card\n");
+    xprintf("--  = Get Status\n");
+    xprintf(" \n");
+    xprintf("R1 = Next Chan\n");
+    xprintf("L1 = Prev Chan\n");
+    xprintf("R2 = Next Card\n");
+    xprintf("L2 = Prev Card\n");
+    xprintf("R3 = Exit\n");
+    xprintf("--------------------\n");
 }
 
 void menu_loop()
@@ -421,6 +442,7 @@ void menu_loop()
     while (true)
     {
 
+        scr_clear();
         print_menu_header();
 
         update_pad();
@@ -433,7 +455,7 @@ void menu_loop()
             update_pad();
         }
 
-        printf("Processing...\n");
+        xprintf("Processing...\n");
 
         // Ping & GameID
 
@@ -456,7 +478,7 @@ void menu_loop()
         }
         else if (released(PAD_TRIANGLE))
         {
-            printf("Triangle pressed\n");
+            xprintf("Get Game ID not implemented\n");
         }
 
         // Chan and Card Switch:
@@ -501,7 +523,7 @@ void menu_loop()
 void auto_test()
 {
 
-    printf("Performing auto test sequence...\n");
+    xprintf("Performing auto test sequence...\n");
 
     time_t t;
     srand((unsigned)time(&t));
@@ -531,18 +553,18 @@ void auto_test()
     delay(2);
     test_set_gameid(gameid);
 
-    printf("Auto test complete\n");
+    xprintf("Auto test complete\n");
 }
 
 /// @return a button was pressed on the pad, interrupting the countdown.
 bool countdown()
 {
 
-    printf("Auto test will run in 3 seconds, press the Any key for manual operation\n");
+    xprintf("Auto test will run in 3 seconds, press the Any key for manual operation\n");
 
     for (int i = 4; i > 0; i--)
     {
-        printf("%d... %ld\n", i, rawPadMask);
+        xprintf("%d...\n", i-1);
         for (int j = 0; j < 60; j++)
         {
             delayframe();
@@ -559,18 +581,20 @@ bool countdown()
 int main()
 {
 
-    printf("Loading sio2man\n");
+    init_scr();
+
+    xprintf("Loading sio2man\n");
     IRX_LOAD(sio2man);
     delay(1);
 
-    printf("Loading sd2psxman\n");
+    xprintf("Loading sd2psxman\n");
     IRX_LOAD(sd2psxman);
     delay(1);
     
-    printf("Loading mcman\n");
+    xprintf("Loading mcman\n");
     IRX_LOAD(mcman);
 
-    printf("Loading padman\n");
+    xprintf("Loading padman\n");
     IRX_LOAD(padman);
 
     sd2psxman_init();
@@ -583,7 +607,7 @@ int main()
 
     if (!padInited)
     {
-        printf("Pad init failed...\n");
+        xprintf("Pad init failed...\n");
         auto_test();
         return 0;
     }
@@ -592,10 +616,14 @@ int main()
 
     if (!interrupted)
     {
-        printf("No button press, running auto test...\n");
+        xprintf("No button press, running auto test...\n");
         auto_test();
         return 0;
     }
+
+    // in case you've been mashing the keys a bit
+    update_pad();
+    delay(1);
 
     menu_loop();
 
