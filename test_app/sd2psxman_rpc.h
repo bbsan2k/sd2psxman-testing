@@ -17,4 +17,6 @@ int sd2psxman_set_gameid(int port, int slot, const char *gameid);
 
 int sd2psxman_unmount_bootcard(int port, int slot);
 
+int sd2psxman_send_raw_payload(int port, int slot, uint8_t* tx_buf, uint8_t tx_size, uint8_t* rx_buf, uint8_t rx_size);
+
 #endif

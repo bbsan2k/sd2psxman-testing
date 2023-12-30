@@ -294,6 +294,13 @@ static void sd2psxman_unmount_bootcard(void *data)
     }
 }
 
+static void sd2psxman_send_raw_payload(void *data)
+{
+    sd2psxman_raw_rpc_pkt_t *pkt = data;
+
+    sd2psxman_sio2_send(pkt->port, pkt->slot, pkt->payload_size, pkt->payload_size, pkt->payload, pkt->payload);
+}
+
 static void *sd2psxman_rpc_handler(unsigned int CMD, void *rpcBuffer, int size)
 {
     if (McCommandHandler == NULL)
@@ -331,6 +338,9 @@ static void *sd2psxman_rpc_handler(unsigned int CMD, void *rpcBuffer, int size)
         case SD2PSXMAN_UNMOUNT_BOOTCARD:
             sd2psxman_unmount_bootcard(rpcBuffer);
             break;
+        case SD2PSXMAN_SEND_RAW_PAYLOAD:
+            sd2psxman_send_raw_payload(rpcBuffer);
+            break;
         default:
             printf(MODNAME": Unknown CMD (%d) called!\n", CMD);
     }
@@ -362,7 +372,7 @@ int _start(int argc, char *argv[])
 
 int __start(int argc, char *argv[])
 {
-    printf("SD2PSX Manager v%d.%d by El_isra\n", MAJOR, MINOR);
+    printf("SD2PSX Manager v%d.%d by El_isra and qnox32\n", MAJOR, MINOR);
 
     if (ioplib_getByName("mcman") != NULL)
     {

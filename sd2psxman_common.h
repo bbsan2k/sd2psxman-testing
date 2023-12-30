@@ -15,7 +15,8 @@ enum SD2PSXMAN_RPC_ID {
     SD2PSXMAN_SET_CHANNEL,
     SD2PSXMAN_GET_GAMEID,
     SD2PSXMAN_SET_GAMEID,
-    SD2PSXMAN_UNMOUNT_BOOTCARD = 0x30
+    SD2PSXMAN_UNMOUNT_BOOTCARD = 0x30,
+    SD2PSXMAN_SEND_RAW_PAYLOAD,
 };
 
 enum SD2PSXMAN_SET_MODE {
@@ -38,7 +39,6 @@ typedef struct sd2psxman_rpc_pkt_t
     int ret;    //return value
 }sd2psxman_rpc_pkt_t;
 
-
 typedef struct sd2psxman_gameid_rpc_pkt_t
 {
     u8 slot;    //used for multitap
@@ -48,8 +48,17 @@ typedef struct sd2psxman_gameid_rpc_pkt_t
     int ret;
 }sd2psxman_gameid_rpc_pkt_t;
 
+typedef struct sd2psxman_raw_rpc_pkt_t
+{
+    u8 slot;    //used for multitap
+    u8 port;    //0 = ctrl1, 1 = ctrl2, 2 = memcard1, 3 = memcard2
+    u8 payload[255];
+    u8 payload_size;
+    int ret;
+}sd2psxman_raw_rpc_pkt_t;
 
 #define SD2PSXMAN_RPC_PKT_SIZE sizeof(sd2psxman_rpc_pkt_t)
 #define SD2PSXMAN_GAMEID_RPC_PKT_SIZE sizeof(sd2psxman_gameid_rpc_pkt_t)
+#define SD2PSXMAN_RAW_RPC_PKT_SIZE sizeof(sd2psxman_raw_rpc_pkt_t)
 
 #endif
