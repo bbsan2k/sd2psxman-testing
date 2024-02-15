@@ -59,13 +59,16 @@ operation performed and whether or not it was successful.
 ### 0x4 - Set Card [Implemented]
 | offset | out  |  in  |         description         |
 |--------|------|------|-----------------------------|
-| 0x03   | var  | 0x0  | mode                        |
+| 0x03   | var  | 0x0  | type                        |
+| .      |      |      | 0x0 = regular card          |
+| .      |      |      | 0x0 = boot card             |
+| 0x04   | var  | 0x0  | mode                        |
 | .      |      |      | 0x0 = set card to number    |
 | .      |      |      | 0x1 = set card to next card |
 | .      |      |      | 0x2 = set card to prev card |
-| 0x04   | var  | 0x0  | card upper 8 bits           |
-| 0x05   | var  | 0x0  | card lower 8 bits           |
-| 0x06   | 0xff | 0xff | termination byte            |
+| 0x05   | var  | 0x0  | card upper 8 bits           |
+| 0x06   | var  | 0x0  | card lower 8 bits           |
+| 0x07   | 0xff | 0xff | termination byte            |
 
 ### 0x5 - Get Channel [Implemented]
 | offset | out  |  in  |         description          |
