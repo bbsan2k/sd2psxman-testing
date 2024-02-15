@@ -40,7 +40,6 @@ int sd2psxman_init(void)
 	return 0;
 }
 
-
 int sd2psxman_ping(int port, int slot)
 {
     CHECK_RPC_INIT();
@@ -183,7 +182,7 @@ int sd2psxman_get_gameid(int port, int slot, char *gameid)
         return -1;
     }
 
-    if (pkt.ret > -1) {
+    if (pkt.ret > -1 && gameid != NULL) {
         strcpy(gameid, pkt.gameid);
     }
 
@@ -231,6 +230,41 @@ int sd2psxman_unmount_bootcard(int port, int slot)
     {
         DPRINTF("%s: RPC ERROR\n", __FUNCTION__);
         return -1;
+    }
+
+    return pkt.ret;
+}
+
+int sd2psxman_send_raw_payload(int port, int slot, uint8_t* tx_buf, uint8_t tx_size, uint8_t* rx_buf, uint8_t rx_size)
+{
+    CHECK_RPC_INIT();
+
+    if(tx_size > 255 || rx_size > 255) {
+        printf("Payload bigger than 255 bytes, aborting!\n");
+        return -1;
+    }
+
+    sd2psxman_raw_rpc_pkt_t pkt;
+    memset(&pkt, 0, SD2PSXMAN_RAW_RPC_PKT_SIZE);
+
+    pkt.port = port;
+    pkt.slot = slot;
+
+    if (tx_size > rx_size)
+        pkt.payload_size = tx_size;
+    else
+        pkt.payload_size = rx_size;
+
+    memcpy(pkt.payload, tx_buf, tx_size);
+
+    if (SifCallRpc(&sd2psxman_RPC, SD2PSXMAN_SEND_RAW_PAYLOAD, 0, &pkt, SD2PSXMAN_RAW_RPC_PKT_SIZE, &pkt, SD2PSXMAN_RAW_RPC_PKT_SIZE, NULL, NULL) < 0)
+    {
+        DPRINTF("%s: RPC ERROR\n", __FUNCTION__);
+        return -1;
+    }
+
+    if (rx_buf != NULL) {
+        memcpy(rx_buf, pkt.payload, rx_size);
     }
 
     return pkt.ret;

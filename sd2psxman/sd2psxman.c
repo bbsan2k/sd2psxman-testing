@@ -34,6 +34,62 @@ void HOOKED_SecrSetMcCommandHandler(McCommandHandler_t handler)
     ORIGINAL_SecrSetMcCommandHandler(handler); //we kept the original function to call it from here... else, SECRMAN wont auth cards...
 }
 
+static int sd2psxman_sio2_send_port0(u8 in_size, u8 *in_buf)
+{
+    int rv;
+    sio2_transfer_data_t sio2packet;
+
+    //clear port ctrl settings
+    memset(sio2packet.port_ctrl1, 0, sizeof(sio2packet.port_ctrl1));
+    memset(sio2packet.port_ctrl2, 0, sizeof(sio2packet.port_ctrl2));
+
+    //configure baud and other common parameters
+    //baud0 div = 0x2 (24MHz)
+    //baud1 div = 0xff (~200KHz)
+    sio2packet.port_ctrl1[0] = PCTRL0_ATT_LOW_PER(0x5)      |
+                               PCTRL0_ATT_MIN_HIGH_PER(0x5) |
+                               PCTRL0_BAUD0_DIV(0xFF)       |
+                               PCTRL0_BAUD1_DIV(0xFF);
+ 
+    sio2packet.port_ctrl2[0] = PCTRL1_ACK_TIMEOUT_PER(0x5) |
+                               PCTRL1_INTER_BYTE_PER(0x5)  |
+                               PCTRL1_UNK24(0x0)           |
+                               PCTRL1_IF_MODE_SPI_DIFF(0x0);
+
+    sio2packet.in_dma.addr = NULL;
+    sio2packet.out_dma.addr = NULL;
+
+    sio2packet.in_size = in_size;
+    sio2packet.out_size = 0;
+
+    sio2packet.in = in_buf; //MEM -> SIO2
+    sio2packet.out = NULL;  //SIO2 -> MEM
+
+    //Each byte is a separate transfer, this allows up to 15 bytes to be transferred while ignoring /ACK
+    for (int i = 0; i < in_size; i++) {
+        sio2packet.regdata[i] = TR_CTRL_PORT_NR(0)       |
+                        TR_CTRL_PAUSE(0)            |
+                        TR_CTRL_TX_MODE_PIO_DMA(0)  |
+                        TR_CTRL_RX_MODE_PIO_DMA(0)  |
+                        TR_CTRL_NORMAL_TR(1)        |
+                        TR_CTRL_SPECIAL_TR(0)       |
+                        TR_CTRL_BAUD_DIV(0)         |
+                        TR_CTRL_WAIT_ACK_FOREVER(0) |
+                        TR_CTRL_TX_DATA_SZ(1) |
+                        TR_CTRL_RX_DATA_SZ(0);
+    }
+    sio2packet.regdata[in_size] = 0x0;
+
+    //execute SIO2 transfer
+    rv = McCommandHandler(0, 0, &sio2packet);
+    
+    if (rv == 0) {
+        DPRINTF("McCommandHandler failed\n");
+    }
+
+    return rv;
+}
+
 static int sd2psxman_sio2_send(int port, int slot, u8 in_size, u8 out_size, u8 *in_buf, u8 *out_buf)
 {
     int rv;
@@ -64,7 +120,7 @@ static int sd2psxman_sio2_send(int port, int slot, u8 in_size, u8 out_size, u8 *
     sio2packet.out_size = out_size;
 
     sio2packet.in = in_buf;    //MEM -> SIO2
-    sio2packet.out = out_buf;  //SIO2 <- MEM
+    sio2packet.out = out_buf;  //SIO2 -> MEM
 
     //configure single transfer (up to 255 bytes)
     sio2packet.regdata[0] = TR_CTRL_PORT_NR(port)       |
@@ -264,6 +320,7 @@ static void sd2psxman_set_gameid(void *data)
     strcpy(str, pkt->gameid);
 
     sd2psxman_sio2_send(pkt->port, pkt->slot, (pkt->gameid_len + 5), sizeof(rdbuf), wrbuf, rdbuf);
+    sd2psxman_sio2_send_port0((pkt->gameid_len + 5), wrbuf);
     
     if (rdbuf[0x1] == SD2PSXMAN_REPLY_CONST) {
         pkt->ret = 0;
@@ -292,6 +349,13 @@ static void sd2psxman_unmount_bootcard(void *data)
         DPRINTF("%s ERROR: Invalid response from card. Got 0x%x, Expected 0x%x\n", __func__, rdbuf[0x1], SD2PSXMAN_REPLY_CONST);
         pkt->ret = -2;
     }
+}
+
+static void sd2psxman_send_raw_payload(void *data)
+{
+    sd2psxman_raw_rpc_pkt_t *pkt = data;
+
+    sd2psxman_sio2_send(pkt->port, pkt->slot, pkt->payload_size, pkt->payload_size, pkt->payload, pkt->payload);
 }
 
 static void *sd2psxman_rpc_handler(unsigned int CMD, void *rpcBuffer, int size)
@@ -331,6 +395,9 @@ static void *sd2psxman_rpc_handler(unsigned int CMD, void *rpcBuffer, int size)
         case SD2PSXMAN_UNMOUNT_BOOTCARD:
             sd2psxman_unmount_bootcard(rpcBuffer);
             break;
+        case SD2PSXMAN_SEND_RAW_PAYLOAD:
+            sd2psxman_send_raw_payload(rpcBuffer);
+            break;
         default:
             printf(MODNAME": Unknown CMD (%d) called!\n", CMD);
     }
@@ -362,7 +429,7 @@ int _start(int argc, char *argv[])
 
 int __start(int argc, char *argv[])
 {
-    printf("SD2PSX Manager v%d.%d by El_isra\n", MAJOR, MINOR);
+    printf("SD2PSX Manager v%d.%d by El_isra and qnox32\n", MAJOR, MINOR);
 
     if (ioplib_getByName("mcman") != NULL)
     {

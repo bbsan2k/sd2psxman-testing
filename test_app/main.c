@@ -59,6 +59,22 @@ inline void delayframe()
     nanosleep(&tv, NULL);
 }
 
+
+void wait_for_card(uint8_t timeout)
+{
+    int temp = -1;
+
+    xprintf("Polling card with ping, you can safely ignore the following failed ping msgs:\n");
+    for (int i = 0; i < timeout; i++) {
+
+        temp = sd2psxman_ping(PORT, 0);
+        if (temp > -1)
+            break;
+
+        delay(1);
+    }
+}
+
 void test_ping(void)
 {
     int rv;
@@ -112,8 +128,8 @@ void test_set_card_next(void)
 
     if (rv > -1) {
         sd2psxman_set_card(PORT, 0, SD2PSXMAN_MODE_NEXT, 0);
-        delay(7); //give card time to switch
-        
+        wait_for_card(10);
+
         temp = sd2psxman_get_card(PORT, 0);
 
         if (temp > -1 && temp != rv) {
@@ -136,7 +152,8 @@ void test_set_card_prev(void)
 
     if (rv > -1) {
         sd2psxman_set_card(PORT, 0, SD2PSXMAN_MODE_PREV, 0);
-        delay(7); //give card time to switch
+        wait_for_card(10);
+
         temp = sd2psxman_get_card(PORT, 0);
 
         if (temp > -1 && temp != rv) {
@@ -159,7 +176,8 @@ void test_set_card_num(int num)
 
     if (rv > -1) {
         sd2psxman_set_card(PORT, 0, SD2PSXMAN_MODE_NUM, num);
-        delay(7); //give card time to switch
+        wait_for_card(10);
+
         temp = sd2psxman_get_card(PORT, 0);
 
         if (temp > -1 && temp != rv) {
@@ -201,7 +219,8 @@ void test_set_channel_next(void)
 
     if (rv > -1) {
         sd2psxman_set_channel(PORT, 0, SD2PSXMAN_MODE_NEXT, 0);
-        delay(7); //give card time to switch
+        wait_for_card(10);
+
         temp = sd2psxman_get_channel(PORT, 0);
 
         if (temp > -1 && temp != rv) {
@@ -224,7 +243,8 @@ void test_set_channel_prev(void)
     
     if (rv > -1) {
         sd2psxman_set_channel(PORT, 0, SD2PSXMAN_MODE_PREV, 0);
-        delay(7); //give card time to switch        
+        wait_for_card(10);
+
         temp = sd2psxman_get_channel(PORT, 0);
 
         if (temp > -1 && temp != rv) {
@@ -247,7 +267,8 @@ void test_set_channel_num(int num)
 
     if (rv > -1) {
         sd2psxman_set_channel(PORT, 0, SD2PSXMAN_MODE_NUM, num);
-        delay(7); //give card time to switch
+        wait_for_card(10);
+
         temp = sd2psxman_get_channel(PORT, 0);
 
         if (temp > -1 && temp != rv) {
@@ -291,7 +312,8 @@ void test_set_gameid(char *gameid)
     
     if (rv > -1) {
         sd2psxman_set_gameid(PORT, 0, gameid);
-        delay(1);
+        wait_for_card(10);
+
         rv = sd2psxman_get_gameid(PORT, 0, new_gameid);
 
         if (rv > -1) {
@@ -314,7 +336,8 @@ void test_unmount_bootcard(void)
     rv = sd2psxman_get_card(PORT, 0);
     if (rv == 0) {
         sd2psxman_unmount_bootcard(PORT, 0);
-        delay(7); //give card time to switch
+        wait_for_card(10);
+
         temp = sd2psxman_get_card(PORT, 0);
 
         if (temp > -1 && temp != rv) {
@@ -328,6 +351,25 @@ void test_unmount_bootcard(void)
     }
     xprintf("[FAIL] bootcard not mounted\n");
     xprintf("\n");
+}
+
+void test_send_raw_payload(void)
+{
+    uint8_t tx_buf[7];
+    uint8_t rx_buf[7];
+
+    tx_buf[0] = 0x8B;
+    tx_buf[1] = 0x1;
+    tx_buf[2] = 0xFF;
+    tx_buf[3] = 0xFF;
+    tx_buf[4] = 0xFF;
+
+    sd2psxman_send_raw_payload(PORT, 0, &tx_buf, sizeof(tx_buf), &rx_buf, sizeof(rx_buf));
+
+    xprintf("Response bytes:\n");
+    for (int i = 0; i < sizeof(rx_buf); i++) {
+        xprintf("0x%x\n", rx_buf[i]);
+    }
 }
 
 /// @brief Read pad vals and update prev to determine new button presses/releases
@@ -478,7 +520,7 @@ void menu_loop()
         }
         else if (released(PAD_TRIANGLE))
         {
-            xprintf("Get Game ID not implemented\n");
+            test_get_gameid();
         }
 
         // Chan and Card Switch:
@@ -509,6 +551,10 @@ void menu_loop()
         else if (released(PAD_SELECT))
         {
             test_get_status();
+        }
+        else if (released(PAD_L3))
+        {
+            test_send_raw_payload();
         }
         else if (released(PAD_R3))
         {
