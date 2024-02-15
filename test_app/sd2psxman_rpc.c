@@ -100,7 +100,7 @@ int sd2psxman_get_card(int port, int slot)
     return pkt.ret;
 }
 
-int sd2psxman_set_card(int port, int slot, int mode, int cnum)
+int sd2psxman_set_card(int port, int slot, int type, int mode, int cnum)
 {
     CHECK_RPC_INIT();
 
@@ -110,6 +110,7 @@ int sd2psxman_set_card(int port, int slot, int mode, int cnum)
     pkt.port = port;
     pkt.slot = slot;
 
+    pkt.type = type;
     pkt.mode = mode;
     pkt.cnum = cnum;
     
