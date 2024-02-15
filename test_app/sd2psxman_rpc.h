@@ -7,7 +7,7 @@ int sd2psxman_ping(int port, int slot);
 int sd2psxman_get_status(int port, int slot);
 
 int sd2psxman_get_card(int port, int slot);
-int sd2psxman_set_card(int port, int slot, int mode, int num);
+int sd2psxman_set_card(int port, int slot, int type, int mode, int num);
 
 int sd2psxman_get_channel(int port, int slot);
 int sd2psxman_set_channel(int port, int slot, int mode, int num);

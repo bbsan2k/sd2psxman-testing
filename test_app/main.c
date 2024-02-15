@@ -118,6 +118,31 @@ void test_get_card(void)
     xprintf("\n");
 }
 
+void test_mount_boot_card(void)
+{
+    int rv;
+    int temp = -1;
+
+    xprintf("Testing: 0x4 - Mount Boot Card\n");
+    rv = sd2psxman_get_card(PORT, 0);
+
+    if (rv > -1) {
+        sd2psxman_set_card(PORT, 0, SD2PSXMAN_CARD_TYPE_REGULAR, SD2PSXMAN_MODE_NEXT, 0);
+        wait_for_card(10);
+
+        temp = sd2psxman_get_card(PORT, 0);
+
+        if (temp > -1 && temp != rv) {
+            xprintf("[PASS] card: %i -> %i\n", rv, temp);
+            xprintf("\n");
+            return;
+        }
+    }
+    xprintf("[FAIL] %i %i\n", rv, temp);
+    xprintf("\n");
+}
+
+
 void test_set_card_next(void)
 {
     int rv;
@@ -127,7 +152,7 @@ void test_set_card_next(void)
     rv = sd2psxman_get_card(PORT, 0);
 
     if (rv > -1) {
-        sd2psxman_set_card(PORT, 0, SD2PSXMAN_MODE_NEXT, 0);
+        sd2psxman_set_card(PORT, 0, SD2PSXMAN_CARD_TYPE_REGULAR, SD2PSXMAN_MODE_NEXT, 0);
         wait_for_card(10);
 
         temp = sd2psxman_get_card(PORT, 0);
@@ -151,7 +176,7 @@ void test_set_card_prev(void)
     rv = sd2psxman_get_card(PORT, 0);
 
     if (rv > -1) {
-        sd2psxman_set_card(PORT, 0, SD2PSXMAN_MODE_PREV, 0);
+        sd2psxman_set_card(PORT, 0, SD2PSXMAN_CARD_TYPE_REGULAR, SD2PSXMAN_MODE_PREV, 0);
         wait_for_card(10);
 
         temp = sd2psxman_get_card(PORT, 0);
@@ -175,7 +200,7 @@ void test_set_card_num(int num)
     rv = sd2psxman_get_card(PORT, 0);
 
     if (rv > -1) {
-        sd2psxman_set_card(PORT, 0, SD2PSXMAN_MODE_NUM, num);
+        sd2psxman_set_card(PORT, 0, SD2PSXMAN_CARD_TYPE_REGULAR, SD2PSXMAN_MODE_NUM, num);
         wait_for_card(10);
 
         temp = sd2psxman_get_card(PORT, 0);
@@ -232,6 +257,7 @@ void test_set_channel_next(void)
     xprintf("[FAIL] %i %i\n", rv, temp);
     xprintf("\n");
 }
+
 
 void test_set_channel_prev(void)
 {
@@ -472,6 +498,7 @@ void print_menu_header()
     xprintf(" \n");
     xprintf("R1 = Next Chan\n");
     xprintf("L1 = Prev Chan\n");
+    xprintf("L3 = Mount Boot Card\n");
     xprintf("R2 = Next Card\n");
     xprintf("L2 = Prev Card\n");
     xprintf("R3 = Exit\n");
@@ -532,6 +559,10 @@ void menu_loop()
         else if (released(PAD_L2))
         {
             test_set_card_prev();
+        }
+        else if (released(PAD_L3))
+        {
+            test_mount_boot_card();
         }
         else if (released(PAD_R1))
         {
