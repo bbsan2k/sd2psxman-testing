@@ -236,7 +236,7 @@ int sd2psxman_unmount_bootcard(int port, int slot)
     return pkt.ret;
 }
 
-int sd2psxman_send_raw_payload(int port, int slot, uint8_t* tx_buf, uint8_t tx_size, uint8_t* rx_buf, uint8_t rx_size);
+int sd2psxman_send_raw_payload(int port, int slot, uint8_t* tx_buf, uint8_t tx_size, uint8_t* rx_buf, uint8_t rx_size)
 {
     CHECK_RPC_INIT();
 
