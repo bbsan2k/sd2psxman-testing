@@ -159,15 +159,16 @@ static void sd2psxman_set_card(void *data)
 {
     sd2psxman_rpc_pkt_t *pkt = data;
 
-    u8 wrbuf[0x7];
+    u8 wrbuf[0x8];
     u8 rdbuf[0x2];
 
     wrbuf[0x0] = SD2PSXMAN_ID;          //identifier
     wrbuf[0x1] = SD2PSXMAN_SET_CARD;    //command
     wrbuf[0x2] = SD2PSXMAN_RESERVED;    //reserved byte
-    wrbuf[0x3] = pkt->mode;             //set mode (num, next, prev)
-    wrbuf[0x4] = pkt->cnum >> 8;        //card number upper 8 bits
-    wrbuf[0x5] = pkt->cnum & 0xFF;      //card number lower 8 bits
+    wrbuf[0x3] = pkt->type;             //card type (0 = regular, 1 = boot)
+    wrbuf[0x4] = pkt->mode;             //set mode (num, next, prev)
+    wrbuf[0x5] = pkt->cnum >> 8;        //card number upper 8 bits
+    wrbuf[0x6] = pkt->cnum & 0xFF;      //card number lower 8 bits
 
     sd2psxman_sio2_send(pkt->port, pkt->slot, sizeof(wrbuf), sizeof(rdbuf), wrbuf, rdbuf);
 

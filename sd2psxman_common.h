@@ -30,10 +30,16 @@ enum SD2PSXMAN_PORTS{
     PORT_MEMCARD2
 };
 
+enum SD2PSXMAN_CARD_TYPE{
+    SD2PSXMAN_CARD_TYPE_REGULAR = 0,
+    SD2PSXMAN_CARD_TYPE_BOOT
+};
+
 typedef struct sd2psxman_rpc_pkt_t
 {
     u8 slot;    //used for multitap
     u8 port;    //0 = ctrl1, 1 = ctrl2, 2 = memcard1, 3 = memcard2
+    u8 type;    //regular or boot card
     u8 mode;    //num, next, or prev for commands set chan/card
     u16 cnum;   //card or channel number depending on cmd
     int ret;    //return value
